@@ -186,7 +186,7 @@ def test_inference_time_large_batch(train_model):
     """大量データでの推論時間を検証"""
     model, X_test, _ = train_model
     # テストデータを100倍に拡張
-    X_large = pd.concat([X_test]*100, ignore_index=True)
+    X_large = pd.concat([X_test] * 100, ignore_index=True)
     start_time = time.time()
     model.predict(X_large)
     end_time = time.time()
