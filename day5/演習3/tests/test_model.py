@@ -171,3 +171,38 @@ def test_model_reproducibility(sample_data, preprocessor):
     assert np.array_equal(
         predictions1, predictions2
     ), "モデルの予測結果に再現性がありません"
+
+
+def test_model_accuracy_range(train_model):
+    """モデルの精度が現実的な範囲内か検証（過学習やリークの検知）"""
+    model, X_test, y_test = train_model
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    # 0.75以上1.0未満（1.0はデータリークの疑い）
+    assert 0.75 <= accuracy < 1.0, f"モデル精度が異常です: {accuracy}"
+
+
+def test_inference_time_large_batch(train_model):
+    """大量データでの推論時間を検証"""
+    model, X_test, _ = train_model
+    # テストデータを100倍に拡張
+    X_large = pd.concat([X_test]*100, ignore_index=True)
+    start_time = time.time()
+    model.predict(X_large)
+    end_time = time.time()
+    inference_time = end_time - start_time
+    # 100倍データでも10秒以内
+    assert inference_time < 10.0, f"大量データでの推論が遅すぎます: {inference_time}秒"
+
+
+def test_model_with_missing_values(train_model, sample_data):
+    """欠損値を含むデータで推論できるか検証"""
+    model, _, _ = train_model
+    # テスト用に欠損値を意図的に作成
+    test_sample = sample_data.drop("Survived", axis=1).iloc[:5].copy()
+    test_sample.iloc[0, 0] = np.nan  # 1つ目のサンプルの1列目を欠損
+    try:
+        preds = model.predict(test_sample)
+        assert len(preds) == 5
+    except Exception as e:
+        pytest.fail(f"欠損値を含むデータで推論に失敗: {e}")
